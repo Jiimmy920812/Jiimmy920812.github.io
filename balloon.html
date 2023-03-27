@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@600&display=swap" rel="stylesheet">
+    <title>射氣球小遊戲</title>
+</head>
+
+<body>
+    <div id="app">
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+        <div class="header"></div>
+        <button class="start"></button>
+        <div class="gameOver"></div>
+        <p>test</p>
+
+
+    </div>
+
+
+
+    <script>
+        //基本資料
+        let world = {
+            x: 0,
+            y: 0,
+            width: 500,
+            height: 500,
+            score: 0,
+            time: 30,
+            balloonNum: 10,
+            isStart: false,
+        }
+        let bow = {
+            width: 48,
+            height: 74,
+            x: 465,
+            y: 227,
+            speed: 30,
+            scale: 0.6
+        };
+        let arrow = {
+            width: 50,
+            height: 10,
+            x: 450,
+            y: bow.y + 13,
+            speed: 10,
+            scale: 1,
+            status: false,
+        };
+        let balloon = {
+            width: 16,
+            height: 32,
+            speed: "",
+            renderX: 0,
+            renderY: 0,
+            x: "",
+            y: "",
+            color: '',
+            score: '',
+            type: [
+                { name: 'blue', speed: 1.1, score: 10 },
+                { name: 'green', speed: 1.2, score: 10 },
+                { name: 'purple', speed: 1.3, score: 10 },
+                { name: 'red', speed: 2, score: 20 },
+                { name: 'yellow', speed: 3, score: 30 },
+            ]
+        }
+
+        //暫存元素陣列
+        let arrowArr = [];
+        let balloonArr = [];
+        let balloonY = [];
+
+        //  寫入文字
+        const app = document.querySelector("#app")
+        const header = document.querySelector("#app").querySelector(".header")
+        let score = document.createElement("p");
+        let time = document.createElement("p");
+        score.classList.add('font_type')
+        time.classList.add('font_type')
+
+        score.textContent = `SCORE：${world.score}`;
+        time.textContent = `TIME：${world.time}:00`;
+
+        header.appendChild(score)
+        header.appendChild(time)
+
+
+        // 設置Canvas
+        let canvas = document.getElementById("gameCanvas");
+        let ctx = canvas.getContext("2d");
+
+        class Balloon {
+            constructor(element, data) {
+                this.element = element;
+                this.color = data.color
+                this.score = data.score
+                this.renderX = data.renderX
+                this.renderY = data.renderY
+                this.src = element.src
+                this.x = data.x
+                this.y = data.y
+                this.width = data.width
+                this.height = data.height
+                this.speed = data.speed;
+            }
+            bomb() {
+                setInterval(() => {
+                    this.renderX += 16
+                }, 30);
+            }
+        }
+        class Arrow {
+            constructor(element, data) {
+                this.element = element;
+                this.x = data.x
+                this.y = data.y
+                this.width = data.width
+                this.height = data.height
+                this.speed = data.speed;
+                this.scale = data.scale;
+            }
+        }
+        class Bow {
+            constructor(element, data) {
+                this.element = element;
+                this.x = data.x
+                this.y = data.y
+                this.width = data.width
+                this.height = data.height
+                this.speed = data.speed;
+                this.scale = data.scale;
+            }
+        }
+
+        //取得隨機數
+        function getRandom(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        //生成氣球
+        function createBalloon(positionY) {
+            let balloonImage = new Image();
+            let color = balloon.type[getRandom(0, balloon.type.length - 1)].name
+            let speed = balloon.type.find(n => n.name === color).speed
+            balloonImage.src = `./img/balloon/balloon_${color}.png`;
+            balloon.color = color
+            balloon.score = balloon.type.find(n => n.name === color).score
+            balloon.y = world.height + positionY
+            balloon.x = getRandom(0, world.width / balloon.width - 1 * 8) * balloon.width;
+            balloon.speed = Number(`${speed}`)
+            let balloonEl = new Balloon(balloonImage, balloon);
+            balloonArr.push(balloonEl);
+        }
+
+        //生成多顆氣球
+        let y = 0
+        for (let i = 0; i < world.balloonNum; i++) {
+            y += balloon.height
+            balloonY.push(y)
+            createBalloon(balloonY[i])
+        }
+        //生成箭
+        let arrowControl = ''
+        function createArrow() {
+            arrowImage = new Image();
+            arrowImage.src = "./img/arrow.png";
+            arrowControl = new Bow(arrowImage, arrow);
+        }
+
+        //生成弓
+        let bowEl = ''
+        function createBow() {
+            let bowImage = new Image();
+            bowImage.src = "./img/bow.png";
+            bowEl = new Bow(bowImage, bow);
+        }
+        createArrow()
+        createBow()
+
+        //發射Fn
+        function shootingArrow() {
+            let arrowImage = new Image();
+            arrowImage.src = "./img/arrow.png";
+            arrow.y = arrowControl.y
+            beginBow = new Arrow(arrowImage, arrow)
+            let arrowEl = new Arrow(arrowImage, arrow);
+            arrowArr.push(arrowEl);
+        }
+
+        //碰撞檢測
+        function isHit(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                rect1.x + rect1.width > rect2.x &&
+                rect1.y < rect2.y + rect2.height &&
+                rect1.height + rect1.y > rect2.y
+        }
+
+
+        let startTime;
+        const countDownTime = world.time * 1000;
+        function countDownAnimation() {
+            const timeRemaining = Math.max(0, countDownTime - Date.now() + startTime);
+            const displaySec = String(new Date(timeRemaining).getSeconds()).padStart(2, "0");
+            const displayMilliSec = String(Math.floor(new Date(timeRemaining).getMilliseconds() / 10)).padStart(2, "0");
+            time.textContent = `TIME：${displaySec}:${displayMilliSec}`;
+            //關閉計時
+            if (timeRemaining === 0) {
+                world.isStart = false
+                let gameOverEl = document.querySelector(".gameOver")
+                gameOverEl.style.display = 'flex'
+            }
+        };
+        startTime = Date.now();
+
+
+
+        function gameLoop() {
+            // 清空Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            //生成弓跟箭
+            ctx.drawImage(bowEl.element, 0, 0, bowEl.width, bowEl.height, bowEl.x, bowEl.y, bowEl.width * bowEl.scale, bowEl.height * bowEl.scale);
+            ctx.drawImage(arrowControl.element, 0, 0, arrowControl.width, arrowControl.height, arrowControl.x, arrowControl.y, arrowControl.width * arrowControl.scale, arrowControl.height * arrowControl.scale);
+
+
+            //生成多顆氣球循環
+            for (let i = 0; i < balloonArr.length; i++) {
+                let balloon = balloonArr[i];
+                ctx.drawImage(balloon.element, balloon.renderX, balloon.renderY, balloon.width, balloon.height, balloon.x, balloon.y, balloon.width, balloon.height);
+                // 移動氣球
+                balloon.y -= balloon.speed;
+                if (balloon.y < 0) {
+                    // 刪除超出畫面的氣球
+                    balloonArr.splice(i, 1);
+                    // 生成新的氣球並加到畫面底部
+                    createBalloon(balloonY[i])
+                }
+
+                //刪除氣球
+                const ans = arrowArr.some(n => {
+                    return isHit(n, balloon)
+                })
+                if (ans) {
+                    // balloonArr.splice(i, 1);
+                    balloon.bomb()
+
+
+                    world.score += balloon.score
+                    score.textContent = `SCORE：${world.score}`;
+                    createBalloon(balloonY[i])
+                }
+                //刪除弓箭
+                arrowArr.forEach((n, index) => {
+                    if (isHit(n, balloon)) {
+                        arrowArr.splice(index, 1);
+                    }
+                });
+            }
+            // 射出新的箭頭
+            if (arrow.status) {
+                shootingArrow()
+                arrow.status = false;
+            }
+            // 繪製發射的箭頭
+            for (let i = 0; i < arrowArr.length; i++) {
+                let arrow = arrowArr[i];
+                ctx.drawImage(arrow.element, 0, 0, arrow.width, arrow.height, arrow.x, arrow.y, arrow.width * arrow.scale, arrow.height * arrow.scale)
+                arrow.x -= arrow.speed;
+                // 如果箭頭超出畫面，則從數組中刪除
+                if (arrow.x < 0) {
+                    arrowArr.splice(i, 1);
+                }
+            }
+            countDownAnimation()
+            if (world.isStart) requestAnimationFrame(gameLoop);
+            if (!world.isStart) ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+
+
+
+        //操作層
+        document.addEventListener("keydown", () => {
+            if (event.code === "Space") {
+                arrow.status = true;
+            }
+        });
+        document.addEventListener('keydown', () => {
+            if (event.code === 'ArrowUp') {
+                arrowControl.y -= bow.speed;
+                bowEl.y -= bow.speed;
+                if (arrowControl.y <= 0 + arrow.height) arrowControl.y = 14
+                if (bowEl.y <= 0) bowEl.y = 0
+            }
+            if (event.code === 'ArrowDown') {
+                arrowControl.y += bow.speed;
+                bowEl.y += bow.speed;
+                console.log(arrowControl.y);
+                if (arrowControl.y >= world.height - bow.height * bow.scale + 14) arrowControl.y = world.height - bow.height * bow.scale + 14
+                if (bowEl.y >= world.height - bow.height * bow.scale) bowEl.y = world.height - bow.height * bow.scale
+            }
+        })
+
+        document.querySelector(".start").addEventListener('click', () => {
+            startTime = Date.now();
+            let startEl = document.querySelector(".start")
+            startEl.style.display = 'none'
+            world.isStart = true
+            gameLoop();
+        })
+
+
+
+
+
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            position: relative;
+            margin: 0 auto;
+            margin-top: 50px;
+            width: 500px;
+            height: 500px;
+            border: 1px solid rgb(33, 25, 25);
+            background-image: url("./img/background.png");
+            background-repeat: no-repeat;
+            background-size: cover;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            width: 400px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 3;
+        }
+
+        .start {
+            position: absolute;
+            width: 200px;
+            height: 100px;
+            background-image: url("./img/play.png");
+            background-repeat: no-repeat;
+            background-size: contain;
+            background-color: transparent;
+            background-repeat: no-repeat;
+            border: none;
+        }
+
+        .gameOver {
+            display: none;
+            position: absolute;
+            margin-top: 110px;
+            width: 350px;
+            height: 200px;
+            background-image: url("./img/gameover.png");
+            background-repeat: no-repeat;
+            background-size: contain;
+        }
+
+        .font_type {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 24px;
+            color: #FFFFFF;
+            text-shadow: 2px 2px 0px #005B88;
+
+
+
+        }
+    </style>
+
+
+
+
+
+
+</body>
+
+</html>
